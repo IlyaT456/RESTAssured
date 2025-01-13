@@ -9,8 +9,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class UserTime {
+public class CreateNewUser {
 
-    private String name;
-    private String job;
+    private String name = "morpheus";
+    private String job = "leader";
 }

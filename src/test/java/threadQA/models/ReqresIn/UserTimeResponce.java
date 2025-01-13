@@ -10,5 +10,5 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class UserTimeResponce extends UserTime {
 
-    public String updatedAt;
+    private String updatedAt;
 }

@@ -5,6 +5,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import threadQA.models.ReqresIn.*;
 import threadQA.specifications.Specifications;
+import threadQA.steps.ReqresInSteps;
 
 import java.time.Clock;
 import java.util.List;
@@ -13,6 +14,8 @@ import java.util.stream.Collectors;
 import static io.restassured.RestAssured.given;
 
 public class ReqresInTest {
+
+    ReqresInSteps reqInSteps = new ReqresInSteps();
 
     @Test
     @DisplayName("Имена файлов 'avatar' и ID совпадают")
@@ -34,37 +37,25 @@ public class ReqresInTest {
     @DisplayName("Успешная регистрация")
     @Test
     public void testSuccessfulRegistration() {
-        Specifications.installSpecifications(Specifications.requestSpecReqresIn(), Specifications.responseSpecOk200());
-        Integer expectedId = 4;
+        int expectedId = 4;
         String expectedToken = "QpwL5tke4Pnpja7X4";
 
         Register registerData = new Register("eve.holt@reqres.in", "pistol");
 
-        SuccessReg SuccessReg = given()
-                .body(registerData)
-                .when()
-                .post("/api/register")
-                .then().log().body()
-                .extract().as(SuccessReg.class);
+        SuccessReg successReg = reqInSteps.registerUser(registerData);
 
-        Assertions.assertEquals(expectedId, SuccessReg.getId());
-        Assertions.assertEquals(expectedToken, SuccessReg.getToken());
+        Assertions.assertEquals(expectedId, successReg.getId());
+        Assertions.assertEquals(expectedToken, successReg.getToken());
     }
 
-    @DisplayName("Успешная регистрация")
+    @DisplayName("Не успешная регистрация")
     @Test
     public void testUnSuccessfulRegistration() {
-        Specifications.installSpecifications(Specifications.requestSpecReqresIn(), Specifications.responseSpecError400());
         String expectedError = "Missing password";
 
         Register registerData = new Register("sydney@fife", "");
 
-        UnRegister unRegister = given()
-                .body(registerData)
-                .when()
-                .post("/api/register")
-                .then().log().body()
-                .extract().as(UnRegister.class);
+        UnRegister unRegister = reqInSteps.unRegisterUser(registerData);
 
         Assertions.assertEquals(expectedError, unRegister.getError());
     }
@@ -73,11 +64,7 @@ public class ReqresInTest {
     @Test
     public void testSortColorsByYearDesc() {
         Specifications.installSpecifications(Specifications.requestSpecReqresIn(), Specifications.responseSpecOk200());
-        List<ColorsData> colorsData = given()
-                .when()
-                .get("/api/unknown")
-                .then().log().body()
-                .extract().jsonPath().getList("data", ColorsData.class);
+        List<ColorsData> colorsData = reqInSteps.getColors();
 
         List<Integer> years = colorsData.stream().map(ColorsData::getYear).sorted().collect(Collectors.toList());
         List<Integer> sortedYear = years.stream().sorted().collect(Collectors.toList());
@@ -85,33 +72,43 @@ public class ReqresInTest {
         Assertions.assertEquals(sortedYear, years);
     }
 
+    @DisplayName("Создание нового пользователя")
+    @Test
+    public void testCreateNewUser() {
+        CreateNewUser user = new CreateNewUser("morpheus", "leader");
+
+        CreateNewUserRes newUser = reqInSteps.createNewUser(user);
+
+        Assertions.assertNotNull(newUser.getId());
+        Assertions.assertEquals(user.getName(), newUser.getName());
+
+//        String regex = "\\..*";
+        String regex = "(T\\d{2}:\\d{2}).*";
+        String currentTime = Clock.systemUTC().instant().toString().replaceAll(regex, "");
+        Assertions.assertEquals(newUser.getCreatedAt().replaceAll(regex, ""), currentTime);
+    }
+
     @DisplayName("Удаление пользоватля")
     @Test
     public void testDeleteUser() {
-        Specifications.installSpecifications(Specifications.requestSpecReqresIn(), Specifications.responseSpecUniqueStatus(204));
-        Integer userId = 2;
-        given().pathParam("id", userId)
-                .when()
-                .delete("/api/users/{id}")
-                .then().log().body();
+        int userId = 2;
+
+        reqInSteps.deleteUser(userId);
     }
 
+    @DisplayName("Проверка времени")
     @Test
     public void testTime() {
         Specifications.installSpecifications(Specifications.requestSpecReqresIn(), Specifications.responseSpecOk200());
-        Integer userId = 2;
+        int userId = 2;
         UserTime userTime = new UserTime("morpheus", "zion resident");
 
-        UserTimeResponce responce = given()
-                .pathParam("id", userId)
-                .body(userTime)
-                .when()
-                .put("/api/users/{id}")
-                .then().log().body()
-                .extract().as(UserTimeResponce.class);
+        UserTimeResponce resUserTime = reqInSteps.upDatedTime(userId, userTime);
 
-        String regex = "\\..*";
+//        String regex = "\\..*";
+        String regex = "(T\\d{2}:\\d{2}).*";
+
         String currentTime = Clock.systemUTC().instant().toString().replaceAll(regex, "");
-        Assertions.assertEquals(currentTime, responce.getUpdatedAt().replaceAll(regex, ""));
+        Assertions.assertEquals(currentTime, resUserTime.getUpdatedAt().replaceAll(regex, ""));
     }
 }
